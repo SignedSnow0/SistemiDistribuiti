@@ -18,12 +18,12 @@ int main(int argc, char **argv) {
         printf("Utilizzo: client <serverIP> <serverPort>\n");
     }
 
+    // Inizializzazione indirizzo server e socket associata
+    struct hostent *host = gethostbyname(argv[1]);
     struct sockaddr_in address;
     memset(&address, 0, sizeof(address));
 
     address.sin_family = AF_INET;
-
-    struct hostent *host = gethostbyname(argv[1]);
     address.sin_addr.s_addr =
         ((struct in_addr *)(host->h_addr_list[0]))->s_addr;
     address.sin_port = htons(atoi(argv[2]));
@@ -42,9 +42,11 @@ int main(int argc, char **argv) {
     char buf[BUFFER_LENGTH];
     printf("Inserire comando da eseguire: ");
     while (gets(buf)) {
+        // Invio comando ricevuto da console al server
         write(sock, buf, strlen(buf));
 
         char c;
+        // lettura da socket a stdout fino a ricezione EOF
         while (read(sock, &c, sizeof(char)), c) {
             write(1, &c, sizeof(char));
         }
@@ -52,7 +54,9 @@ int main(int argc, char **argv) {
         printf("Inserire comando da eseguire: ");
     }
 
+    // Indicazione chiusura client al server
     buf[0] = 0;
     write(sock, buf, sizeof(char));
+
     close(sock);
 }

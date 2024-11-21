@@ -15,30 +15,36 @@
 #define BUFFER_LENGTH 256
 #define MAX_TCP_QUEUE 5
 
-typedef struct {
-    char filename[BUFFER_LENGTH];
-    char parola[BUFFER_LENGTH];
-} Datagram;
-
-struct sockaddr_in create_socket_addres(const char *ip, const int port) {
+/**
+ * Crea un indirizzo per una socket per tutti gli ip presenti sul dispositivo e
+ * la porta specificata come parametro.
+ */
+struct sockaddr_in create_socket_addres(const int port) {
     struct sockaddr_in address;
     memset(&address, 0, sizeof(address));
 
     address.sin_family = AF_INET;
-
-    if (ip) {
-        struct hostent *host = gethostbyname(ip);
-        address.sin_addr.s_addr =
-            ((struct in_addr *)(host->h_addr_list[0]))->s_addr;
-    } else {
-        address.sin_addr.s_addr = INADDR_ANY;
-    }
-
+    address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
 
     return address;
 }
 
+/**
+ * Formatta la stringa di ingresso in modo da poter essere usati dalla syscall
+ * evecv*
+ *
+ * @param str La stringa da cui prendere i parametri.
+ * Ogni parametro deve essere diviso da uno spazio.
+ *
+ * @param command Conterrà il nome del comando da eseguire.
+ *
+ * @param args[] Conterrà una stringa per ogni argomento da utilizzare.
+ * Il primo argomento è [command].
+ * L'ultimo elemento dell'array è uno 0 binario.
+ *
+ * @return Il numero di argomenti presenti nell'array [args].
+ */
 int parse_args(const char *str, char *command, char *args[BUFFER_LENGTH]) {
     int n_args = 0;
 
@@ -66,11 +72,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    struct sockaddr_in udp_sock_address =
-        create_socket_addres(0, atoi(argv[1]));
-    struct sockaddr_in tcp_sock_address =
-        create_socket_addres(0, atoi(argv[2]));
+    struct sockaddr_in udp_sock_address = create_socket_addres(atoi(argv[1]));
+    struct sockaddr_in tcp_sock_address = create_socket_addres(atoi(argv[2]));
 
+    // Creazione socket e bind sugli indirizzi
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (tcp_sock < 0) {
         printf("Errore creazione socket tcp!\n");
@@ -111,8 +116,10 @@ int main(int argc, char **argv) {
     FD_SET(tcp_sock, &read_mask);
     FD_SET(udp_sock, &read_mask);
 
+    // Logica di business
     while (select(udp_sock + 1, &read_mask, 0, 0, 0) > 0) {
         if (FD_ISSET(udp_sock, &read_mask)) {
+            // Caso richiesta udp
             char buf[BUFFER_LENGTH];
             struct sockaddr_in dst_address;
             unsigned int dst_address_length;
@@ -123,18 +130,22 @@ int main(int argc, char **argv) {
             char *args[BUFFER_LENGTH];
             int n_args = parse_args(buf, buf, args);
 
+#ifndef NO_LOG
             printf("Ricevuto comando udp:\n");
             for (int i = 0; i < n_args; i++) {
                 printf("\tArgomento:  %s\n", args[i]);
             }
+#endif
 
             int exec_pid = fork();
             if (exec_pid == 0) {
+                // Esecuzione comando su processo figlio
                 execvp(buf, args);
 
                 printf("Errore exec\n");
                 exit(1);
             } else if (exec_pid > 0) {
+                // Attesa conclusione figlio e ottenimento codice di uscita
                 int status;
                 waitpid(exec_pid, &status, 0);
 
@@ -142,8 +153,9 @@ int main(int argc, char **argv) {
                 if (WIFEXITED(status)) {
                     exit = WEXITSTATUS(status);
                 }
+#ifndef NO_LOG
                 printf("Risultato exec: %d\n", exit);
-
+#endif
                 sendto(udp_sock, &exit, sizeof(exit), 0,
                        (struct sockaddr *)&dst_address, dst_address_length);
             }
@@ -164,25 +176,31 @@ int main(int argc, char **argv) {
                 return 1;
             }
 
+#ifndef NO_LOG
             printf("Connessione accettata\n");
-
+#endif
             if (fork() == 0) {
                 close(tcp_sock);
 
                 char buf[BUFFER_LENGTH];
 
                 read(sock, buf, sizeof(buf));
+                // Esecuzione comandi fino alla ricezione di EOF da client
                 while (buf[0]) {
                     char *args[BUFFER_LENGTH];
                     int n_args = parse_args(buf, buf, args);
 
+#ifndef NO_LOG
                     printf("Ricevuto comando tcp:\n");
                     for (int i = 0; i < n_args; i++) {
                         printf("\tArgomento:  %s\n", args[i]);
                     }
+#endif
 
                     int exec_pid = fork();
                     if (exec_pid == 0) {
+                        // Esecuzione comando su processo figlio con redirezione
+                        // out su socket
                         close(1);
                         dup(sock);
                         close(sock);
@@ -192,12 +210,15 @@ int main(int argc, char **argv) {
                         printf("Errore exec\n");
                         exit(1);
                     } else if (exec_pid > 0) {
+                        // Scrittura EOF alla fine della exec per denotare fine
+                        // sequenza di output
                         int status;
                         waitpid(exec_pid, &status, 0);
 
                         char eof = 0;
                         write(sock, &eof, sizeof(eof));
                     } else {
+                        printf("Errore fork per exec!\n");
                         close(sock);
                     }
 
@@ -206,7 +227,10 @@ int main(int argc, char **argv) {
                 }
 
                 close(sock);
+
+#ifndef NO_LOG
                 printf("Connessione chiusa\n");
+#endif
             }
         }
     }
