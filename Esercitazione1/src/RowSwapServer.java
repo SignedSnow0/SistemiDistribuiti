@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 public class RowSwapServer {
     public static void main(String[] args) {
         if (args.length != 4) {
-            System.out.println("RowSwapServer <dsIp> <dsPort> <serverPort> <file>");
+            System.out.println("RowSwapServer <discovery_server IP> <discovery_server port> <port> <file>");
             System.exit(1);
         }
 
@@ -21,7 +21,7 @@ public class RowSwapServer {
 
             socket.send(packet);
         } catch (NumberFormatException | IOException e) {
-            System.out.println("Errore registrazione al discovery server");
+            System.out.println("Errore registering to discovery server");
             System.exit(1);
         }
 

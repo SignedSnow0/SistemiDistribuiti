@@ -7,11 +7,11 @@ import java.util.List;
 public class DiscoveryServer {
 
     /**
-     * @param args portaRichiesteClient portaRegistrazioneRS
+     * @param args client port, row swap port
      */
     public static void main(String[] args) {
         if (args.length != 2) {
-            System.out.println("DiscoveryServer <portaRichiesteClient> <portaRegistrazioneRS>");
+            System.out.println("DiscoveryServer <client port> <row_swap port>");
             System.exit(1);
         }
 
@@ -21,7 +21,7 @@ public class DiscoveryServer {
             clientSocket = new DatagramSocket(Integer.parseInt(args[0]));
             rowSwapSocket = new DatagramSocket(Integer.parseInt(args[1]));
         } catch (SocketException | NumberFormatException e) {
-            System.out.println("Errore nella creazione socket");
+            System.out.println("Error creating socket");
             System.exit(1);
         }
 
@@ -36,19 +36,17 @@ public class DiscoveryServer {
                     request = new String(packet.getData(), StandardCharsets.UTF_8).trim();
                 } catch (IOException e) { continue; }
 
-                var response = switch (request) {
-                    case "ls" -> {
-                        var responseBuilder = new StringBuilder();
-                        for (var server : servers) {
-                            responseBuilder.append(server.file());
-                            responseBuilder.append("\n");
-                        }
-                        yield responseBuilder.toString();
+                var response = "Unknown request";
+                if (request.equals("ls")) {
+                    var responseBuilder = new StringBuilder();
+                    for (var server : servers) {
+                        responseBuilder.append(server.file());
+                        responseBuilder.append(";");
+                        responseBuilder.append(server.port());
+                        responseBuilder.append("\n");
                     }
-                    default -> {
-                        yield "";
-                    }
-                };
+                    response = responseBuilder.toString();
+                }
 
                 try {
                     packet.setData(response.getBytes());
@@ -92,8 +90,17 @@ public class DiscoveryServer {
         rowSwapThread.start();
     }
 
+    /**
+     * List of registered servers
+     */
     private static List<ServerEntry> servers;
 
+    /**
+     * Client interface socket
+     */
     private static DatagramSocket clientSocket;
+    /**
+     * RowSwapServer socket
+     */
     private static DatagramSocket rowSwapSocket;
 }
