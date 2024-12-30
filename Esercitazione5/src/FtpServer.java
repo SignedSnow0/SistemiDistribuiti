@@ -1,42 +1,64 @@
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class FtpServer extends UnicastRemoteObject implements IFtpServer {
     public FtpServer() throws RemoteException { super(); }
 
     @Override
-    public ConnectionDetails GetDirActive(String path) throws RemoteException {
+    public GetDirResponse GetDirActive(String path) throws RemoteException {
         try {
-            var server = new FileServer(path);
-           
-            var files = Arrays.stream(new File(path)
-                .listFiles())
-                .filter(File::isFile)
-                .map(File::getName)
-                .toArray(String[]::new);
-
-            for (var file : files) {
-                System.out.println(file);
+            var folder = new File(path);
+            if (!folder.isDirectory()) {
+                return null;
             }
 
+            List<String> files = new ArrayList<>();
+            for (var file : folder.listFiles()) {
+                if (file.isFile()) {
+                    files.add(file.getName());
+                }
+            }
+
+            var server = new FileServerActive(path);
             new Thread(server).start();
 
-            System.out.println("Fine rmi");
-
-            return new ConnectionDetails(server.GetIp(), server.GetPort(), files);
+            return new GetDirResponse(server.GetIp(), server.GetPort(), files.toArray(new String[files.size()]));
         } catch (IOException | IllegalArgumentException e) {
-            throw new RemoteException();
+            return null;
         }
     }
 
     @Override
-    public String[] GetDirPassive(String path, String ip, int port) throws RemoteException {
-        return null;
+    public String[] GetDirPassive(String path, InetAddress ip, int port) throws RemoteException {
+        try {
+            var folder = new File(path);
+            if (!folder.isDirectory()) {
+                return null;
+            }
+
+            List<String> files = new ArrayList<>();
+            for (var file : folder.listFiles()) {
+                if (file.isFile()) {
+                    files.add(file.getName());
+                }
+            }
+
+            var server = new FileServerPassive(path, ip, port);
+            new Thread(server).start();
+
+            return files.toArray(new String[files.size()]);
+        } catch (IOException | IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public static void main(String[] args) {
@@ -46,7 +68,6 @@ public class FtpServer extends UnicastRemoteObject implements IFtpServer {
             Naming.rebind("//localhost:1099/FtpServer", server);
         } catch (RemoteException | MalformedURLException e) {
             System.err.println("Remote exception: " + e.getMessage());
-            e.printStackTrace();
             System.exit(1);
         }
     }

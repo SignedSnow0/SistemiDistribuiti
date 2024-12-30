@@ -1,8 +1,8 @@
 import java.io.Serializable;
 import java.net.InetAddress;
 
-public class ConnectionDetails implements Serializable {
-    public ConnectionDetails(InetAddress ip, int port, String[] files) {
+public class GetDirResponse implements Serializable {
+    public GetDirResponse(InetAddress ip, int port, String[] files) {
         this.ip = ip;
         this.port = port;
         this.files = files;
