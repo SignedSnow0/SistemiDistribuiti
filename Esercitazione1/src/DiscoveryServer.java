@@ -15,8 +15,6 @@ public class DiscoveryServer {
             System.exit(1);
         }
 
-        servers = new ArrayList<>();
-
         try {
             clientSocket = new DatagramSocket(Integer.parseInt(args[0]));
             rowSwapSocket = new DatagramSocket(Integer.parseInt(args[1]));
@@ -41,7 +39,7 @@ public class DiscoveryServer {
                     var responseBuilder = new StringBuilder();
                     for (var server : servers) {
                         responseBuilder.append(server.file());
-                        responseBuilder.append(";");
+                        responseBuilder.append("@");
                         responseBuilder.append(server.port());
                         responseBuilder.append("\n");
                     }
@@ -90,17 +88,7 @@ public class DiscoveryServer {
         rowSwapThread.start();
     }
 
-    /**
-     * List of registered servers
-     */
-    private static List<ServerEntry> servers;
-
-    /**
-     * Client interface socket
-     */
+    private static final List<ServerEntry> servers = new ArrayList<>();
     private static DatagramSocket clientSocket;
-    /**
-     * RowSwapServer socket
-     */
     private static DatagramSocket rowSwapSocket;
 }

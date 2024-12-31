@@ -11,25 +11,26 @@ public class Client {
             System.exit(1);
         }
 
-        try {
-            socket = new DatagramSocket();
-        } catch (SocketException e) {
-            throw new RuntimeException(e);
-        }
-
         var buffer = new byte[1024];
         var packet = new DatagramPacket(buffer, buffer.length);
 
+        try {
+            socket = new DatagramSocket();
+
+            packet.setAddress(InetAddress.getByName(args[0]));
+            packet.setPort(Integer.parseInt(args[1]));
+        } catch (SocketException | NumberFormatException | UnknownHostException e) {
+            System.out.println("Error parsing input arguments");
+            System.exit(1);
+        }
+
         var reader = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("Select an option (ls to show files, swap <port> <i> <j> to swap lines): ");
+        System.out.println("Select an option ([ls] to show files, [swap <port> <i> <j>] to swap lines): ");
         String line = reader.readLine();
         while (line != null) {
             if (line.equals("ls")) {
                 String[] files;
                 try {
-                    packet.setAddress(InetAddress.getByName(args[0]));
-                    packet.setPort(Integer.parseInt(args[1]));
-
                     packet.setData(line.getBytes(StandardCharsets.UTF_8));
                     socket.send(packet);
 
@@ -40,11 +41,6 @@ public class Client {
                     files = response.split("\n");
                 } catch (IOException e) {
                     throw new RuntimeException(e);
-                }
-
-                if (files.length == 0) {
-                    System.out.println("No files found");
-                    System.exit(1);
                 }
 
                 System.out.println("Available files: ");
@@ -84,7 +80,7 @@ public class Client {
             }
 
 
-            System.out.println("Select an option (ls to show files, swap <port> <i> <j> to swap lines): ");
+            System.out.println("Select an option ([ls] to show files, [swap <port> <i> <j>] to swap lines): ");
             line = reader.readLine();
         }
     }
