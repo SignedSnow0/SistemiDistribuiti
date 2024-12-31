@@ -3,7 +3,12 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 public class FileClient {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        if (args.length != 2) {
+            System.out.println("Client <server IP> <server port>");
+            System.exit(1);
+        }
+
         try {
             var address = InetAddress.getByName(args[0]);
             var port = Integer.parseInt(args[1]);
@@ -13,83 +18,90 @@ public class FileClient {
             inSocket = new DataInputStream(socket.getInputStream());
             outSocket = new DataOutputStream(socket.getOutputStream());
         } catch (Exception e) {
-            System.out.println("Errore parsing argomenti di ingresso");
+            System.out.println("Client <server IP> <server port>");
             System.exit(1);
         }
 
-        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("PutFileClient Started.\n\n^D(Unix)/^Z(Win)+invio per uscire, oppure scegli azione:");
+        var stdIn = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("[mget <dir>] to get a directory | [mput <dir>] to put a directory");
 
-        try {
-            String line = null;
-            while ((line = stdIn.readLine()) != null) {
-                var tokens = line.split(" ");
-                if (tokens.length != 2) {
+        String line = null;
+        while ((line = stdIn.readLine()) != null) {
+            var tokens = line.split(" ");
+            if (tokens.length != 2) {
+                System.out.println("[mget <dir>] to get a directory | [mput <dir>] to put a directory");
+                continue;
+            }
+
+            if (tokens[0].equals("mget")) {
+                var folder = new File(tokens[1]);
+                if (folder.isDirectory()) {
+                    System.out.println("Directory already exists");
                     continue;
                 }
 
-                if (tokens[0].equals("mget")) {
-                    MGet(tokens[1]);
-                } else if (tokens[0].equals("mput")) {
-                    MPut(tokens[1]);
+                if (!folder.mkdir()) {
+                    System.out.println("Error creating directory");
+                    continue;
+                }
+
+                outSocket.writeUTF("mget " + folder.getName());
+                if (inSocket.readUTF().equals("does not exist")) {
+                    System.out.println("Directory does not exist");
+                    continue;
+                }
+
+                var newFile = inSocket.readUTF();
+                while (!newFile.equals("stop")) {
+                    var file = new File(folder.getAbsoluteFile() + "/" + newFile);
+                    if (!file.createNewFile()) {
+                        System.out.println("Error creating file");
+                        outSocket.writeUTF("stop");
+                        continue;
+                    }
+
+                    outSocket.writeUTF("continue");
+                    FileUtility.ReceiveFile(inSocket, file);
+
+                    outSocket.writeUTF("continue");
+
+                    newFile = inSocket.readUTF();
+                }
+            } else if (tokens[0].equals("mput")) {
+                var folder = new File(tokens[1]);
+                if (!folder.isDirectory()) {
+                    System.out.println("Directory does not exist");
+                    continue;
+                }
+
+                for (var file : folder.listFiles()) {
+                    if (!file.isFile()) {
+                        continue;
+                    }
+
+                    outSocket.writeUTF("mput " + file.getName());
+                    if (inSocket.readUTF().equals("already exists")) {
+                        System.out.println("File already exists");
+                        continue;
+                    }
+
+                    var response = inSocket.readUTF();
+                    if (!response.equals("continue")) {
+                        continue;
+                    }
+
+                    FileUtility.SendFile(file, outSocket);
+
+                    response = inSocket.readUTF();
+                    if (!response.equals("success")) {
+                        System.out.println("Error sending file");
+                    }
                 }
             }
-        } catch (IOException e) {
 
+            System.out.println("[mget <dir>] to get a directory | [mput <dir>] to put a directory");
         }
     }
-
-    private static void MGet(String path) throws IOException {
-        var folder = new File(path);
-        if (folder.isDirectory()) {
-            return;
-        }
-
-        if (!folder.mkdir()) {
-            return;
-        }
-
-        outSocket.writeUTF("mget " + folder.getName());
-
-        var newFile = inSocket.readUTF();
-        while (!newFile.equals("stop")) {
-            var file = new File(folder.getAbsoluteFile() + "/" + newFile);
-            file.createNewFile();
-
-            FileUtility.RiceviFileDaRete(inSocket, file);
-
-            outSocket.writeUTF("continue");
-
-            newFile = inSocket.readUTF();
-        }
-    }
-
-    private static void MPut(String path) throws IOException {
-        var folder = new File(path);
-        if (!folder.isDirectory()) {
-            return;
-        }
-
-        for (var file : folder.listFiles()) {
-            if (!file.isFile()) {
-                continue;
-            }
-
-            outSocket.writeUTF("mput " + file.getName());
-
-            var response = inSocket.readUTF();
-            if (!response.equals("attiva")) {
-                continue;
-            }
-
-            //outSocket.writeLong(file.length());
-            FileUtility.InviaFileSuRete(file, outSocket);
-
-            response = inSocket.readUTF();
-        }
-    }
-
-
 
     private static Socket socket;
     private static DataInputStream inSocket;
