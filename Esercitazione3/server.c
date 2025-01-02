@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     while (1) {
         struct sockaddr_in sock_addr;
-        int sock_addr_length;
+        unsigned int sock_addr_length;
         int sock;
         if ((sock = accept(listen_sock, (struct sockaddr *)&sock_addr,
                            &sock_addr_length)) < 0) {

@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
                 long file_size;
                 read(sock, &file_size, sizeof(file_size));
 
-                printf("Ricezione file: %s, dimensione: %d\n", buf, file_size);
+                printf("Ricezione file: %s, dimensione: %ld\n", buf, file_size);
 
                 int file = open(buf, O_WRONLY | O_CREAT, 0777);
                 if (file < 0) {

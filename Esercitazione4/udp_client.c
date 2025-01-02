@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
         // lettura codice restituito dal server
         int exit_value;
         struct sockaddr_in server_address;
-        int server_address_length;
+        socklen_t server_address_length;
         recvfrom(sock, &exit_value, sizeof(exit_value), 0,
                  (struct sockaddr *)&server_address, &server_address_length);
 

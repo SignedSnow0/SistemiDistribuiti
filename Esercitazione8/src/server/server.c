@@ -12,7 +12,7 @@ struct Candidate {
 };
 
 struct Vector {
-    struct Candidate* data;
+    struct Candidate *data;
     int length;
     int size;
 };
@@ -26,15 +26,14 @@ struct Vector vector_new() {
     return vector;
 }
 
-void vector_free(struct Vector* vector) {
-    free(vector->data);
-}
+void vector_free(struct Vector *vector) { free(vector->data); }
 
-void vector_push(struct Vector* vector, struct Candidate item) {
+void vector_push(struct Vector *vector, struct Candidate item) {
     if (vector->length + 1 > vector->size) {
-        struct Candidate* old = vector->data;
+        struct Candidate *old = vector->data;
 
-        vector->data = malloc(sizeof(struct Candidate) * vector->size * VECTOR_GROW_FACTOR);
+        vector->data = malloc(sizeof(struct Candidate) * vector->size *
+                              VECTOR_GROW_FACTOR);
         memcpy(vector->data, old, sizeof(struct Candidate) * vector->size);
         free(old);
 
@@ -45,11 +44,11 @@ void vector_push(struct Vector* vector, struct Candidate item) {
     vector->length++;
 }
 
-void vector_pop(struct Vector* vector) {
+void vector_pop(struct Vector *vector) {
     vector->length--;
     if (vector->length < vector->size / VECTOR_GROW_FACTOR) {
         vector->size /= VECTOR_GROW_FACTOR;
-        struct Candidate* old = vector->data;
+        struct Candidate *old = vector->data;
 
         vector->data = malloc(sizeof(struct Candidate) * vector->size);
         memcpy(vector->data, old, sizeof(struct Candidate) * vector->size);
@@ -57,7 +56,7 @@ void vector_pop(struct Vector* vector) {
     }
 }
 
-void vector_remove(struct Vector* vector, int index) {
+void vector_remove(struct Vector *vector, int index) {
     if (index >= vector->length) {
         return;
     }
@@ -68,8 +67,9 @@ void vector_remove(struct Vector* vector, int index) {
     }
 
     int tmp_length = vector->length - (index + 1);
-    struct Candidate* tmp = malloc(sizeof(struct Candidate) * tmp_length);
-    memcpy(tmp, &vector->data[index + 1], sizeof(struct Candidate) * tmp_length);
+    struct Candidate *tmp = malloc(sizeof(struct Candidate) * tmp_length);
+    memcpy(tmp, &vector->data[index + 1],
+           sizeof(struct Candidate) * tmp_length);
 
     memcpy(&vector->data[index], tmp, sizeof(struct Candidate) * tmp_length);
     free(tmp);
@@ -77,7 +77,7 @@ void vector_remove(struct Vector* vector, int index) {
     vector->length--;
     if (vector->length < vector->size / VECTOR_GROW_FACTOR) {
         vector->size /= VECTOR_GROW_FACTOR;
-        struct Candidate* old = vector->data;
+        struct Candidate *old = vector->data;
 
         vector->data = malloc(sizeof(struct Candidate) * vector->size);
         memcpy(vector->data, old, sizeof(struct Candidate) * vector->size);
@@ -140,7 +140,7 @@ void initialize() {
     initialized = 1;
 }
 
-Output* judge_leaderboard_1_svc(void*, struct svc_req* request) {
+Output *judge_leaderboard_1_svc(void *input, struct svc_req *request) {
     initialize();
 
     static Output output;
@@ -150,7 +150,8 @@ Output* judge_leaderboard_1_svc(void*, struct svc_req* request) {
     while (i < candidates.length && set_judges < NUM_JUDGES) {
         int found = 0;
         for (int j = 0; j < set_judges; j++) {
-            if (strcmp(candidates.data[i].judge, output.judgeLeaderboard[j].name) == 0) {
+            if (strcmp(candidates.data[i].judge,
+                       output.judgeLeaderboard[j].name) == 0) {
                 found = 1;
                 output.judgeLeaderboard[j].score += candidates.data[i].vote;
                 break;
@@ -158,7 +159,8 @@ Output* judge_leaderboard_1_svc(void*, struct svc_req* request) {
         }
 
         if (!found) {
-            strcpy(output.judgeLeaderboard[set_judges].name, candidates.data[i].judge);
+            strcpy(output.judgeLeaderboard[set_judges].name,
+                   candidates.data[i].judge);
             output.judgeLeaderboard[set_judges].score = candidates.data[i].vote;
 
             set_judges++;
@@ -169,14 +171,17 @@ Output* judge_leaderboard_1_svc(void*, struct svc_req* request) {
 
     for (i = 0; i < set_judges; i++) {
         for (int j = i + 1; j < set_judges; j++) {
-            if (output.judgeLeaderboard[i].score < output.judgeLeaderboard[j].score) {
+            if (output.judgeLeaderboard[i].score <
+                output.judgeLeaderboard[j].score) {
                 int tmp = output.judgeLeaderboard[i].score;
-                output.judgeLeaderboard[i].score = output.judgeLeaderboard[j].score;
+                output.judgeLeaderboard[i].score =
+                    output.judgeLeaderboard[j].score;
                 output.judgeLeaderboard[j].score = tmp;
 
                 char tmp_judge[STRING_LENGTH];
                 strcpy(tmp_judge, output.judgeLeaderboard[i].name);
-                strcpy(output.judgeLeaderboard[i].name, output.judgeLeaderboard[j].name);
+                strcpy(output.judgeLeaderboard[i].name,
+                       output.judgeLeaderboard[j].name);
                 strcpy(output.judgeLeaderboard[j].name, tmp_judge);
             }
         }
@@ -185,7 +190,7 @@ Output* judge_leaderboard_1_svc(void*, struct svc_req* request) {
     return &output;
 }
 
-int* add_vote_1_svc(Input* input, struct svc_req* request) {
+int *add_vote_1_svc(Input *input, struct svc_req *request) {
     initialize();
 
     static int result;
@@ -202,7 +207,7 @@ int* add_vote_1_svc(Input* input, struct svc_req* request) {
     return &result;
 }
 
-int* remove_vote_1_svc(Input* input, struct svc_req* request) {
+int *remove_vote_1_svc(Input *input, struct svc_req *request) {
     initialize();
 
     static int result;
@@ -219,7 +224,7 @@ int* remove_vote_1_svc(Input* input, struct svc_req* request) {
     return &result;
 }
 
-int* insert_candidate_1_svc(Input* input, struct svc_req* request) {
+int *insert_candidate_1_svc(Input *input, struct svc_req *request) {
     initialize();
 
     static int result;
@@ -245,7 +250,7 @@ int* insert_candidate_1_svc(Input* input, struct svc_req* request) {
     return &result;
 }
 
-int* remove_candidate_1_svc(Input* input, struct svc_req*) {
+int *remove_candidate_1_svc(Input *input, struct svc_req *request) {
     initialize();
 
     static int result;

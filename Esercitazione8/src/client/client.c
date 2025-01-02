@@ -13,7 +13,9 @@ int main(int argc, char** argv) {
     }
 
     Input input;
-    printf("Select your action (L=leaderboard, V=vote, R=remove vote, A=Add candidate, r=remove candidate): ");
+    printf(
+        "Select your action (L=leaderboard, V=vote, R=remove vote, A=Add "
+        "candidate, r=remove candidate): ");
     char buf[STRING_LENGTH];
     while (gets(buf)) {
         if (buf[0] == 'L') {
@@ -24,22 +26,20 @@ int main(int argc, char** argv) {
                     break;
                 }
 
-                printf("%s: %d\n", output->judgeLeaderboard[i].name, output->judgeLeaderboard[i].score);
+                printf("%s: %d\n", output->judgeLeaderboard[i].name,
+                       output->judgeLeaderboard[i].score);
             }
-        }
-        else if (buf[0] == 'V') {
+        } else if (buf[0] == 'V') {
             printf("Contestant name: ");
             gets(input.candidateName);
 
             int* result = add_vote_1(&input, client);
-        }
-        else if (buf[0] == 'R') {
+        } else if (buf[0] == 'R') {
             printf("Contestant name: ");
             gets(input.candidateName);
 
             int* result = remove_vote_1(&input, client);
-        }
-        else if (buf[0] == 'A') {
+        } else if (buf[0] == 'A') {
             printf("Contestant name: ");
             gets(input.candidateName);
 
@@ -55,17 +55,17 @@ int main(int argc, char** argv) {
             input.phase = buf[0];
 
             int* result = insert_candidate_1(&input, client);
-        }
-        else if (buf[0] == 'r') {
+        } else if (buf[0] == 'r') {
             printf("Contestant name: ");
             gets(input.candidateName);
 
             int* result = remove_candidate_1(&input, client);
-        }
-        else {
+        } else {
             printf("Invalid action\n");
         }
 
-        printf("Select your action (L=leaderboard, V=vote, R=remove vote, A=Add candidate, r=remove candidate): ");
+        printf(
+            "Select your action (L=leaderboard, V=vote, R=remove vote, A=Add "
+            "candidate, r=remove candidate): ");
     }
 }
